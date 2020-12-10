@@ -1,0 +1,165 @@
+(* Coursera Programming Languages, Homework 3, Provided Code *)
+
+exception NoAnswer
+
+(**** you can put all your code here ****)
+
+fun only_capitals xs = List.filter (fn v=> Char.isUpper(String.sub(v, 0))) xs
+			      
+fun longest_string1 xs = List.foldl (fn(x, y)=> if String.size x> String.size y then x else y) "" xs
+
+fun longest_string2 xs = List.foldl (fn(x, y)=> if String.size x>= String.size y then x else y) "" xs
+			    
+fun longest_string_helper f xs = List.foldl (fn(x, y)=> if f(String.size x, String.size y) then x else y) "" xs
+	
+fun longest_string3 xs =
+    let fun f(a,b) = a>b
+    in
+	
+	longest_string_helper f xs
+    end
+	
+fun longest_string4 xs=
+    let fun f(a,b) = a>=b
+    in
+	
+	longest_string_helper f xs
+    end
+
+fun longest_capitalized xs = longest_string1 (only_capitals xs)
+
+fun rev_string s = (String.implode o List.rev o String.explode) s
+
+fun first_answer f xs =
+     case xs of
+	 [] => raise NoAnswer
+       | x::xs' => case f(x) of NONE=>first_answer f xs'
+			      | SOME v => v
+
+fun all_answers f xs =
+    case xs of
+	[]=>SOME[]
+     | _ => let fun get_answer xs l =
+		    case (xs, l) of
+			([], []) => NONE
+		      | ([], x) => SOME x 
+		      | (x::xs', _)=>	
+			case f(x) of NONE => get_answer xs' l
+				   | SOME [v] => get_answer xs' (l@[v])
+				   | _ => SOME l 
+	    in
+		get_answer xs []
+	    end
+
+(**** 9 ******)
+datatype pattern = Wildcard
+		 | Variable of string
+		 | UnitP
+		 | ConstP of int
+		 | TupleP of pattern list
+		 | ConstructorP of string * pattern
+
+datatype valu = Const of int
+	      | Unit
+	      | Tuple of valu list
+	      | Constructor of string * valu
+
+fun g f1 f2 p =
+    let 
+	val r = g f1 f2 
+    in
+	case p of
+	    Wildcard          => f1 ()
+	  | Variable x        => f2 x
+	  | TupleP ps         => List.foldl (fn (p,i) => (r p) + i) 0 ps
+	  | ConstructorP(_,p) => r p
+	  | _                 => 0
+    end
+
+
+fun count_wildcards pat = g (fn ()=> 1) (fn x=>0) pat
+
+fun count_wild_and_variable_lengths pat = count_wildcards pat + g (fn ()=>0)(fn y=> String.size y) pat
+
+fun count_some_var (str, pat) = g (fn ()=>0) (fn y=> if(str=y) then 1 else 0) pat
+										   
+fun check_pat pat =
+    let
+	val res =
+	    let fun patlist pat =
+	      case pat of
+		    Variable x => [x]
+		  | TupleP ps => List.foldl (fn (p, i) => (patlist p) @ i) [] ps
+		  | _ => []
+	    in
+		patlist pat
+	    end
+    in
+	let fun	filter res =(
+		case res of		    
+		    [] => true
+		  | x :: xs => if List.exists (fn y => y=x) xs then false else filter xs
+	    )
+	in
+	    filter res
+	end
+    end
+
+	 
+fun match (vu, pat) =
+    let fun matchcase (vu, pat)=
+	    case (vu, pat) of
+		(_ , Wildcard) => SOME [] 
+	      | (v, Variable s) => SOME [(s, v)]					  
+	      | (Unit, UnitP) => SOME []			     
+	      | (Const a, ConstP b) => SOME []	   
+	      | (Tuple vs, TupleP ps) => all_answers (fn (x, y)=> match(x, y)) (ListPair.zip (vs,ps))
+	      | (Constructor(s2, v), ConstructorP(s1,p)) => matchcase(v,p)
+	      | (_, _) => NONE
+							      
+    in
+	matchcase (vu, pat)
+    end
+
+(*val first_match = fn : valu -> pattern list -> (string * valu) list option*)
+fun first_match vu patl = SOME (first_answer (fn x => match(vu, x)) patl)
+			  handle NoAnswer => NONE
+	
+			
+(**** for the challenge problem only ****)
+
+datatype typ = Anything
+	     | UnitT
+	     | IntT
+	     | TupleT of typ list
+	     | Datatype of string
+	    
+(* ((string * string * typ) list) * (pattern list) -> typ option *)
+
+(*	
+fun typecheck_patterns (typeArg, patlist) =
+    let*) fun type_cmp (t1, t2) =
+	    case (t1, t2) of
+		(Anything, t)=> SOME t
+	      | (t, Anything) => SOME t
+	      | (UnitT, UnitT) => SOME UnitT
+	      | (IntT, IntT) => SOME IntT
+	      | (TupleT p1, TupleT p2) => if List.length p1 = List.length p2 then
+					      case all_answers type_cmp ListPair.zip(p1, p2) of
+						  NONE => NONE
+						| SOME t => SOME (TupleT t)
+					  else
+					      NONE
+	      | (Datatype d1, Datatype d2) => if d1=d2 then SOME (Datatype d1) else NONE
+	      | _ => NONE
+(*
+	fun type_convert (s1, s2, t)=
+	    
+	
+    in
+    end
+*)	
+	      
+    
+			  
+	
