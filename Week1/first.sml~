@@ -1,4 +1,0 @@
-(*First program*)
-val x = 34;
-
-val y = 17;
