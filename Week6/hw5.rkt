@@ -29,9 +29,6 @@
 
 (define (mupllist->racketlist mst)
   (if (apair? mst)
-      ;(let ([v1 (int-num (eval-exp (apair-e1 e)))]
-       ;                   [v2 (int-num (eval-exp (apair-e2 e)))])
-        ;              (cons (int v1)(int v2)))
       (cons (apair-e1 mst) (mupllist->racketlist (apair-e2 mst)))
       null))
 
@@ -61,7 +58,9 @@
                (error "MUPL addition applied to non-number")))]
         ;; CHANGE add more cases here
         [(int? e) e]
-        [(fun? e) (eval-under-env (fun-body e) env)];not sure
+        [(closure? e) e]
+        [(aunit? e) e]
+        [(fun? e) (closure env e)]
         [(ifgreater? e)
          (let ([v1 (eval-under-env (ifgreater-e1 e) env)]
                [v2 (eval-under-env (ifgreater-e2 e) env)])
@@ -70,13 +69,37 @@
                (eval-under-env (ifgreater-e3 e) env)
                (eval-under-env (ifgreater-e4 e) env))
            #f))]
+      
         [(mlet? e)
          (let ([v (eval-under-env (mlet-e e) env)])
-               (eval-under-env (mlet-body e) (cons (cons (mlet-var e) v) (mlet-var e))))]
+               (eval-under-env (mlet-body e) (cons (cons (mlet-var e) v) null)))]
+
         [(call? e)
          (let ([v1 (eval-under-env (call-funexp e) env)]
                [v2 (eval-under-env (call-actual e) env)])
-         (if (closure? v1) v1 (error (format "bad funexp expression: ~v" e))))]
+           (if (closure? v1)
+               (let* ([fun (closure-fun v1)]
+                      [body (fun-body fun)]
+                      [closure-env (closure-env v1)]
+                      [fun-name (fun-nameopt fun)]
+                      [var (fun-formal fun)])
+                 (eval-under-env body
+                                 (if fun-name (cons (cons var v2) (cons (cons fun-name v1) closure-env))
+                                     (cons (cons var v2) closure-env))))
+               (error (format "bad MUPL expression: ~v" e))))]
+        [(apair? e)
+         (let ([v1 (eval-under-env (apair-e1 e) env)]
+               [v2 (eval-under-env (apair-e2 e) env)])
+           (apair v1 v2))]
+        
+        [(fst? e) (let ([v1 (eval-under-env (fst-e e) env)])
+         (if(apair? v1) (fst-e e) env) #f)]
+        
+        [(snd? e) (let ([v1 (eval-under-env (snd-e e) env)])
+         (if(apair? v1) (snd-e e) env) #f)]
+        
+        [(isaunit? e) (let ([v1 (eval-under-env (isaunit-e e) env)])
+         (if (aunit? v1) (int 1) (int 0)))]
         [#t (error (format "bad MUPL expression: ~v" e))]))
 
 ;; Do NOT change
@@ -85,15 +108,23 @@
         
 ;; Problem 3
 
-(define (ifaunit e1 e2 e3) "CHANGE")
+(define (ifaunit e1 e2 e3)
+  (isaunit? e1) e2 e3)
 
-(define (mlet* lstlst e2) "CHANGE")
+;; to be checked
+(define (mlet* lstlst e2)
+  (if (null? lstlst) e2
+      (mlet (caar lstlst) (cdar lstlst) (mlet* (cdr lstlst) e2))
+  ))          
 
-(define (ifeq e1 e2 e3 e4) "CHANGE")
+(define (ifeq e1 e2 e3 e4)
+  (let [(_x e1)
+        (_y e2)]
+   (if (equal? _x _y) e3 e4)))
 
 ;; Problem 4
 
-(define mupl-map "CHANGE")
+(define mupl-map "change")
 
 (define mupl-mapAddN 
   (mlet "map" mupl-map
@@ -115,3 +146,4 @@
 ;; Do NOT change this
 (define (eval-exp-c e)
   (eval-under-env-c (compute-free-vars e) null))
+

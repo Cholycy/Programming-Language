@@ -7,3 +7,4 @@ Course link:
 
 Other helpful link during homework: 
 Standard ML basic library: https://smlfamily.github.io/Basis/manpages.html
+ruby learning: http://rubylearning.com/satishtalim/ruby_blocks.html
