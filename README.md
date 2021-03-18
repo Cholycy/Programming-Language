@@ -8,3 +8,7 @@ Course link:
 Other helpful link during homework: 
 Standard ML basic library: https://smlfamily.github.io/Basis/manpages.html
 ruby learning: http://rubylearning.com/satishtalim/ruby_blocks.html
+ruby debug: ruby -r debug hw7testProvided.rb https://www.tutorialspoint.com/ruby/ruby_debugger.htm#:~:text=To%20help%20deal%20with%20bugs,the%20input%20of%20user%20commands.
+
+
+
